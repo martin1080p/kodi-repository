@@ -1,0 +1,64 @@
+name: Build and deploy repository
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Allow the workflow to publish to GitHub Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deploy at a time; a newer push supersedes an in-flight run.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Build repository add-on zip
+        run: |
+          set -euo pipefail
+          id="repository.martin1080p"
+          version=$(python - "$id/addon.xml" <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          print(ET.parse(sys.argv[1]).getroot().get("version"))
+          PY
+          )
+          echo "Building $id-$version.zip"
+          dest="zips/$id"
+          mkdir -p "$dest"
+          rm -f "$dest/$id-"*.zip
+          # Zip the add-on folder so paths inside are "$id/..."
+          zip -r "$dest/$id-$version.zip" "$id" \
+            -x "$id/*.pyc" -x "$id/__pycache__/*"
+
+      - name: Generate addons.xml and checksum
+        run: python _generate.py
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: zips
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

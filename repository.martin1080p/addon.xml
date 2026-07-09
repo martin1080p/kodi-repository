@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="repository.martin1080p"
+       name="Martin's Kodi Repository"
+       version="1.0.0"
+       provider-name="martin1080p">
+  <extension point="xbmc.addon.repository" name="Martin's Kodi Repository">
+    <dir>
+      <info compressed="false">https://martin1080p.github.io/kodi-repository/addons.xml</info>
+      <checksum>https://martin1080p.github.io/kodi-repository/addons.xml.md5</checksum>
+      <datadir zip="true">https://martin1080p.github.io/kodi-repository/</datadir>
+    </dir>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Martin's personal Kodi add-on repository</summary>
+    <summary lang="cs_CZ">Osobní repozitář doplňků Kodi od Martina</summary>
+    <description lang="en_GB">Personal repository hosting Martin's Kodi add-ons.</description>
+    <description lang="cs_CZ">Osobní repozitář s doplňky Kodi od Martina.</description>
+    <platform>all</platform>
+    <license>MIT</license>
+    <assets>
+      <icon>icon.png</icon>
+    </assets>
+  </extension>
+</addon>
