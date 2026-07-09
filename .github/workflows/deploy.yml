@@ -53,10 +53,6 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
-        with:
-          # Enable Pages (source = GitHub Actions) automatically on first run,
-          # so no manual toggle in repo settings is needed.
-          enablement: true
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -65,7 +65,7 @@ using a PAT ensures the push triggers this repo's deploy workflow.)
 
 ## One-time setup
 
-None required for Pages — the deploy workflow enables Pages (source = GitHub
-Actions) automatically on its first run via `configure-pages`'
-`enablement: true`. If your org disallows Actions from enabling Pages, enable it
-manually instead: **Settings → Pages → Source → GitHub Actions**.
+Enable Pages once by hand: **Settings → Pages → Build and deployment → Source →
+GitHub Actions**. (The workflow's `GITHUB_TOKEN` cannot create the Pages site
+itself, so this manual step is required before the first deploy succeeds.) After
+that, every push deploys automatically.
