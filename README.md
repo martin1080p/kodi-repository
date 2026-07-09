@@ -65,4 +65,7 @@ using a PAT ensures the push triggers this repo's deploy workflow.)
 
 ## One-time setup
 
-In this repo's **Settings → Pages**, set **Source** to **GitHub Actions**.
+None required for Pages — the deploy workflow enables Pages (source = GitHub
+Actions) automatically on its first run via `configure-pages`'
+`enablement: true`. If your org disallows Actions from enabling Pages, enable it
+manually instead: **Settings → Pages → Source → GitHub Actions**.
