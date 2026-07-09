@@ -1,0 +1,71 @@
+# Reference workflow for an ADD-ON repo (e.g. plugin.video.prehrajto).
+# This file does NOT run in kodi-repository — copy it into the add-on repo at
+# .github/workflows/publish.yml.
+#
+# Assumes the add-on repo has a ./package.sh in its root that builds
+# plugin.video.prehrajto-<version>.zip into the root (version taken from the
+# add-on's addon.xml). This workflow just runs it and publishes the result.
+#
+# Prerequisite secret: KODI_REPO_TOKEN
+#   A fine-grained Personal Access Token with:
+#     - Repository access: martin1080p/kodi-repository
+#     - Permissions: Contents -> Read and write
+#   Stored in the ADD-ON repo under Settings -> Secrets and variables -> Actions.
+#   (The built-in GITHUB_TOKEN cannot push to another repo. Using a PAT also
+#   means the push DOES trigger kodi-repository's deploy.yml.)
+
+name: Publish to Kodi repository
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout add-on
+        uses: actions/checkout@v4
+
+      - name: Build zip
+        id: build
+        run: |
+          set -euo pipefail
+          chmod +x package.sh
+          ./package.sh
+          shopt -s nullglob
+          zips=(plugin.video.prehrajto-*.zip)
+          if [ ${#zips[@]} -ne 1 ]; then
+            echo "Expected exactly one plugin.video.prehrajto-*.zip in root, found: ${zips[*]:-none}" >&2
+            exit 1
+          fi
+          echo "zip=${zips[0]}" >> "$GITHUB_OUTPUT"
+          echo "Built ${zips[0]}"
+
+      - name: Checkout Kodi repository
+        uses: actions/checkout@v4
+        with:
+          repository: martin1080p/kodi-repository
+          token: ${{ secrets.KODI_REPO_TOKEN }}
+          path: kodi-repository
+
+      - name: Publish zip
+        run: |
+          set -euo pipefail
+          id="plugin.video.prehrajto"
+          zip="${{ steps.build.outputs.zip }}"
+          dest="kodi-repository/zips/$id"
+          mkdir -p "$dest"
+          # Overwrite any existing zip for this version.
+          cp -f "$zip" "$dest/$zip"
+          cd kodi-repository
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "zips/$id/$zip"
+          if git diff --cached --quiet; then
+            echo "::notice::$zip unchanged; nothing to publish."
+          else
+            git commit -m "Publish $zip"
+            git push
+          fi

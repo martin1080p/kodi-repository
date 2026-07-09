@@ -48,6 +48,20 @@ zips/plugin.video.prehrajto/plugin.video.prehrajto-1.2.3.zip
 Pushing that to `main` triggers this repo's workflow, which regenerates the
 manifest and redeploys Pages. No manual edits to `addons.xml` are needed.
 
+### Automating it from the add-on repo
+
+A ready-to-use publishing workflow for an add-on repo lives at
+[`docs/addon-publish-workflow.yml`](docs/addon-publish-workflow.yml). Copy it
+into the add-on repo as `.github/workflows/publish.yml`. It runs the add-on
+repo's `./package.sh` (which builds `plugin.video.prehrajto-<version>.zip` in
+the root) and pushes that zip here on every push to `main` (overwriting the zip
+if the same version already exists).
+
+It needs a secret named `KODI_REPO_TOKEN` in the add-on repo: a fine-grained
+Personal Access Token scoped to `martin1080p/kodi-repository` with **Contents:
+Read and write**. (The built-in `GITHUB_TOKEN` cannot push to another repo, and
+using a PAT ensures the push triggers this repo's deploy workflow.)
+
 ## One-time setup
 
 In this repo's **Settings → Pages**, set **Source** to **GitHub Actions**.
