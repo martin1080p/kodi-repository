@@ -54,8 +54,9 @@ A ready-to-use publishing workflow for an add-on repo lives at
 [`docs/addon-publish-workflow.yml`](docs/addon-publish-workflow.yml). Copy it
 into the add-on repo as `.github/workflows/publish.yml`. It runs the add-on
 repo's `./package.sh` (which builds `plugin.video.prehrajto-<version>.zip` in
-the root) and pushes that zip here on every push to `main` (overwriting the zip
-if the same version already exists).
+the root) and pushes that zip here on every push to `main`. Versions are
+immutable: if that version's zip already exists it is left untouched, so bump
+the version in `addon.xml` to release an update.
 
 It needs a secret named `KODI_REPO_TOKEN` in the add-on repo: a fine-grained
 Personal Access Token scoped to `martin1080p/kodi-repository` with **Contents:
