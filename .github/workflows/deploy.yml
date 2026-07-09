@@ -24,7 +24,70 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
+        # Full history so we can diff this push against the commit before it.
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # If this push added or changed a tracked add-on zip under zips/ (i.e. an
+      # add-on repo published a new version), bump the repository add-on's own
+      # patch version so Kodi clients pick up a fresh repository release too.
+      # Committed with GITHUB_TOKEN, so it does not re-trigger this workflow.
+      # Runs before the build step below so the built zip carries the new version.
+      - name: Bump repository version when an add-on changed
+        env:
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # Resolve the commit to diff against (state before this push). On
+          # workflow_dispatch, or a first/force push, BEFORE is empty or all
+          # zeros or unreachable — fall back to the first parent, if any.
+          base="$BEFORE"
+          if [ -z "$base" ] \
+             || [ "$base" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            base="$(git rev-parse --verify --quiet HEAD^ || true)"
+          fi
+          if [ -z "$base" ]; then
+            echo "No base commit to compare against; skipping version bump."
+            exit 0
+          fi
+          # Did any add-on zip change? The repository's own zip is gitignored
+          # (CI-built), so it never appears here; the guard is belt-and-braces.
+          changed=0
+          while IFS= read -r f; do
+            case "$f" in
+              zips/repository.martin1080p/*) ;;
+              zips/*/*.zip) changed=1 ;;
+            esac
+          done < <(git diff --name-only "$base" "$SHA")
+          if [ "$changed" -eq 0 ]; then
+            echo "No add-on zip changes in this push; repository version unchanged."
+            exit 0
+          fi
+          xml="repository.martin1080p/addon.xml"
+          new_version="$(python3 - "$xml" <<'PY'
+          import re, sys
+          path = sys.argv[1]
+          with open(path, encoding="utf-8") as fh:
+              text = fh.read()
+          m = re.search(r'version="(\d+)\.(\d+)\.(\d+)"', text)
+          if not m:
+              sys.exit(f"no semver version attribute found in {path}")
+          major, minor, patch = (int(g) for g in m.groups())
+          new = f"{major}.{minor}.{patch + 1}"
+          text = text[:m.start()] + f'version="{new}"' + text[m.end():]
+          with open(path, "w", encoding="utf-8") as fh:
+              fh.write(text)
+          print(new)
+          PY
+          )"
+          echo "Bumped repository add-on to $new_version"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "Bump repository to $new_version (add-on updated)" -- "$xml"
+          git push
 
       # Keep only the newest version of each add-on under zips/; delete the rest
       # and commit the removal. Pushed with GITHUB_TOKEN, so it does not
