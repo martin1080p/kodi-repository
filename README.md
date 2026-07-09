@@ -26,7 +26,10 @@ automatically.
   per add-on with versioned zips, plus the generated `addons.xml` and
   `addons.xml.md5`.
 - `_generate.py` — scans `zips/`, reads the `addon.xml` embedded in each zip,
-  and regenerates `addons.xml` + `addons.xml.md5`.
+  and regenerates `addons.xml` + `addons.xml.md5`. It also writes an
+  `index.html` into each folder so the tree is browsable over HTTP (GitHub
+  Pages has no automatic directory listing, which Kodi needs to add the source
+  and to navigate in "Install from zip file").
 - `.github/workflows/deploy.yml` — on every push to `main` (and on manual
   dispatch): builds the repository add-on zip, runs `_generate.py`, and
   deploys `zips/` to GitHub Pages.

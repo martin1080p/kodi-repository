@@ -7,3 +7,5 @@ __pycache__/
 /zips/addons.xml
 /zips/addons.xml.md5
 /zips/repository.martin1080p/
+/zips/index.html
+/zips/**/index.html

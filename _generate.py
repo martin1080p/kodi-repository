@@ -11,6 +11,7 @@ Standard library only. Run from the repo root: ``python _generate.py``.
 """
 
 import hashlib
+import html
 import os
 import sys
 import zipfile
@@ -97,6 +98,38 @@ def build_addons_xml(elements):
             + body + "\n").encode("utf-8")
 
 
+def write_dir_indexes(root=ZIPS_DIR):
+    """Write an index.html into every directory under ``root``.
+
+    GitHub Pages serves no automatic directory listings, but Kodi's HTTP
+    file browser lists a remote directory by parsing ``<a href>`` links from
+    its index page. Emitting these makes the whole tree browsable in Kodi —
+    both when adding the source and when navigating to a zip in "Install from
+    zip file" — and stops the bare directory URL from returning 404.
+    """
+    for dirpath, dirnames, filenames in os.walk(root):
+        subdirs = sorted(d for d in dirnames if not d.startswith("."))
+        files = sorted(
+            f for f in filenames
+            if f != "index.html" and not f.startswith(".")
+        )
+        lines = [
+            "<!DOCTYPE html>",
+            '<html><head><meta charset="utf-8"><title>Index</title></head>',
+            "<body><ul>",
+        ]
+        for name in subdirs:
+            esc = html.escape(name)
+            lines.append(f'<li><a href="{esc}/">{esc}/</a></li>')
+        for name in files:
+            esc = html.escape(name)
+            lines.append(f'<li><a href="{esc}">{esc}</a></li>')
+        lines.append("</ul></body></html>")
+        with open(os.path.join(dirpath, "index.html"), "w",
+                  encoding="utf-8") as fh:
+            fh.write("\n".join(lines) + "\n")
+
+
 def main():
     elements = collect_addon_elements()
     if not elements:
@@ -112,8 +145,10 @@ def main():
     with open(ADDONS_XML_MD5, "w", encoding="utf-8") as fh:
         fh.write(digest + "\n")
 
-    print(f"wrote {ADDONS_XML} ({len(elements)} add-on(s)) "
-          f"and {ADDONS_XML_MD5} ({digest})")
+    write_dir_indexes()
+
+    print(f"wrote {ADDONS_XML} ({len(elements)} add-on(s)), "
+          f"{ADDONS_XML_MD5} ({digest}), and directory index pages")
     return 0
 
 
