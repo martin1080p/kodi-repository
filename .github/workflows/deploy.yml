@@ -5,9 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Allow the workflow to publish to GitHub Pages.
+# Allow the workflow to publish to GitHub Pages and push the pruning commit.
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -25,6 +25,33 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Keep only the newest version of each add-on under zips/; delete the rest
+      # and commit the removal. Pushed with GITHUB_TOKEN, so it does not
+      # re-trigger this workflow (no prune->push->prune loop).
+      - name: Prune old add-on versions
+        run: |
+          set -euo pipefail
+          changed=0
+          for dir in zips/*/; do
+            id="$(basename "$dir")"
+            shopt -s nullglob
+            zips=("$dir$id-"*.zip)
+            shopt -u nullglob
+            [ ${#zips[@]} -le 1 ] && continue
+            newest="$(printf '%s\n' "${zips[@]}" | sort -V | tail -1)"
+            for f in "${zips[@]}"; do
+              [ "$f" = "$newest" ] && continue
+              git rm -q "$f"
+              changed=1
+            done
+          done
+          if [ "$changed" -eq 1 ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "Prune old add-on versions"
+            git push
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
